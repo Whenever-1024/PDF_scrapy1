@@ -1,0 +1,20 @@
+We have already reviewed your samples, however we have some comments to make.
+
+1. We must be careful with the page breaks so as not to leave us information, for example here we are missing part of the text of the "acuerdos" field
+
+2. In this second example it is the same situation as in point 1. We are losing information due to page breaks.
+
+3. We must also extract this information and assign it to the dictionary.
+
+4. We must also extract this information and assign it to the dictionary.
+
+5. For this fifth example, the "juzgado" field was not updated as per the header. Here I also take the opportunity to ask you to help us by removing the spaces so that something like this remains: "PRIMERA SALA" "SEGUNDA SALA" etc.
+
+6. Lastly, in this sixth example, it is what was mentioned in points 1 and 2, since the page breaks are making us lose information.
+
+
+Hi Vitalii, how are you?
+We have reviewed this last sample, the truth is that it is very good only a small detail:
+1. We understand that the Tech Spec did not have an example on how to assign this section of the PDF, the reality is that you did it very well, but the detail is found in the "juzgado", this should be the same as the previous ones until then a new "SALA" appears, corrected this, I think everything would be correct.
+Finally, it is worth mentioning that all the information must be extracted from all the "SALAS" that exist in the PDF, not only those that are marked as an example in the TECH SPEC, that is, all these items:
+
