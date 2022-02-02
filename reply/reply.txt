@@ -18,3 +18,24 @@ We have reviewed this last sample, the truth is that it is very good only a smal
 1. We understand that the Tech Spec did not have an example on how to assign this section of the PDF, the reality is that you did it very well, but the detail is found in the "juzgado", this should be the same as the previous ones until then a new "SALA" appears, corrected this, I think everything would be correct.
 Finally, it is worth mentioning that all the information must be extracted from all the "SALAS" that exist in the PDF, not only those that are marked as an example in the TECH SPEC, that is, all these items:
 
+
+
+Hello Vitalii, how are you, we have reviewed your sample, however we still found errors:
+
+1. We continue to have gaps in the extraction. I am sending you some examples of the gaps.
+Faltantes 1.png ~ Faltantes 4.png
+
+2. In this other example, the information in the box should go in the "acuerdos" section.
+Error 2.png
+
+3. In this other example, the "juzgado" section is incorrect, it should have been what was marked in the box.
+Error 3.png, Error 3.1.png
+4. As for this example, all the text enclosed in red should not go, it was extracted from other lines.
+Error 4.png
+
+Last but not least, I would like to request the following:
+
+A. The text must not contain accents or special characters noted in the Tech Specs.
+
+B. Could you please support us to change the format of the "fecha" field to the following: dd/mm/yyyy
+

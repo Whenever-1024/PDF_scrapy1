@@ -5,8 +5,7 @@ import datetime
 
 FILE = "BL05012022.pdf"
                       
-Fecha = []
-Juzgado = ''
+Fecha, Juzgado = '', ''
 Expediente = []
 Actor = []
 Demandado = []
@@ -104,9 +103,9 @@ def create_dic(recordIndex,b,c,d,e,f):
             "demandado" : e[i].upper(),
             "entidad" : 'CIUDAD DE MEXICO',
             "expediente" :c[i].upper(),
-            "fecha" : Fecha[0].upper(),
+            "fecha" : Fecha,
             "fuero" : 'FEDERAL',
-            "juzgado" : Juzgado.upper(),
+            "juzgado" : Juzgado,
             "tipo" : '',
             "acuerdos" : f[i].upper() if f else '',
             "monto": '',
@@ -225,7 +224,7 @@ for page_layout in extract_pages(FILE,'', pages, laparams=_LA_PARAMS):
                                 broken_page = False
                                 
                             elif round(character.size) == FECHA_FONTSIZE and character.fontname == FECHA_FONTNAME:
-                                Fecha.append(elText)
+                                Fecha = elText
                                 break
                             elif round(character.size) == JUZGADO_FONTSIZE and character.fontname == JUZGADO_FONTNAME:
                                 if elText.startswith('P R I M E R A')>0:
@@ -312,7 +311,7 @@ for page_layout in extract_pages(FILE,'', pages, laparams=_LA_PARAMS):
                         elif round(character.size) == 12 and round(element.bbox[1]) == 36:                            
                             broken_page = False 
                         elif round(character.size) ==  FECHA_FONTSIZE and character.fontname == FECHA_FONTNAME:
-                            Fecha.append(elText)
+                            Fecha = elText
                             break
                         elif round(character.size) ==  10 and character.fontname == 'ABCDEE+Franklin Gothic Medium':
                             if elText.startswith('ACUERDOS DICTADOS EN AUDIENCIAS CELEBRADAS EL')>0:
@@ -418,7 +417,7 @@ for page_layout in extract_pages(FILE,'', pages, laparams=_LA_PARAMS):
                             broken_page = False
                                                       
                         elif round(character.size) == FECHA_FONTSIZE and character.fontname == FECHA_FONTNAME:
-                            Fecha.append(elText)
+                            Fecha = elText
                             break
                         elif round(character.size) == 10 and character.fontname == 'ABCDEE+Franklin Gothic Medium':
                             if elText.startswith('AUDIENCIAS PROGRAMADAS')>0:
@@ -552,7 +551,7 @@ for page_layout in extract_pages(FILE,'', pages, laparams=_LA_PARAMS):
                             broken_page = False
                             
                         elif round(character.size) == AMPAROS_FONTSIZE and character.fontname == AMPAROS_FONTNAME:
-                            Fecha.append(elText)
+                            Fecha = elText
                             if elText.startswith('AMPAROS')>0:
                                 Juzgado_start = 5
                                 broken_y = element.bbox[1]
@@ -682,7 +681,7 @@ for page_layout in extract_pages(FILE,'', pages, laparams=_LA_PARAMS):
                             broken_page = False
                             
                         elif round(character.size) ==  AMPAROS_FONTSIZE and character.fontname == AMPAROS_FONTNAME and elText.startswith('AMPAROS')>0:
-                            Fecha.append(elText)
+                            Fecha = elText
                             Juzgado_start = 5
                             b,c,d,e,f = [],[],[],[],[]
                             recordIndex = []
@@ -1030,7 +1029,7 @@ for page_layout in extract_pages(FILE,'', pages, laparams=_LA_PARAMS):
                         elif round(character.size) == 12 and round(element.bbox[1]) == 36:
                             broken_page = False                             
                         elif round(character.size) ==  FECHA_FONTSIZE and character.fontname == FECHA_FONTNAME:
-                            Fecha.append(elText)
+                            Fecha = elText
                             break
                         elif round(character.size) ==  10 and character.fontname == 'ABCDEE+Franklin Gothic Medium':
                             if elText.startswith('ACUERDOS DICTADOS EN AUDIENCIAS CELEBRADAS EL')>0:
@@ -1168,7 +1167,7 @@ for page_layout in extract_pages(FILE,'', pages, laparams=_LA_PARAMS):
                             broken_page = False
                             
                         elif round(character.size) == AMPAROS_FONTSIZE and character.fontname == AMPAROS_FONTNAME:
-                            Fecha.append(elText)
+                            Fecha = elText
                             if elText.startswith('AMPAROS')>0:
                                 Juzgado_start = 10
                                 b, c, d, e, f = [], [], [], [], []
@@ -1305,7 +1304,7 @@ for page_layout in extract_pages(FILE,'', pages, laparams=_LA_PARAMS):
                             
                         elif round(character.size) == JUZGADO_FONTSIZE and character.fontname == JUZGADO_FONTNAME:
                             if elText.startswith('S E X T A')>0:
-                                Fecha.append(elText)
+                                Fecha = elText
                                 Juzgado_start = 12
                                 broken_y = element.bbox[1]
                                 break
@@ -1420,7 +1419,7 @@ for page_layout in extract_pages(FILE,'', pages, laparams=_LA_PARAMS):
                             broken_page = False
                             
                         elif round(character.size) == AMPAROS_FONTSIZE and character.fontname == AMPAROS_FONTNAME:
-                            Fecha.append(elText)
+                            Fecha = elText
                             if elText.startswith('AMPAROS')>0:
                                 Juzgado_start = 13
                                 broken_y = element.bbox[1]
@@ -1561,7 +1560,7 @@ for page_layout in extract_pages(FILE,'', pages, laparams=_LA_PARAMS):
                             broken_page = False 
                             
                         elif round(character.size) == JUZGADO_FONTSIZE and character.fontname == JUZGADO_FONTNAME:
-                            Fecha.append(elText)
+                            Fecha = elText
                             if elText.startswith('S E P T I M A')>0:
                                 Juzgado_start = 14
                                 broken_y = element.bbox[1]
