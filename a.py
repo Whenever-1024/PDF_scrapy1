@@ -1,4 +1,3 @@
-from email import header
 import re
 import mysql.connector
 from mysql.connector import errorcode
@@ -298,10 +297,15 @@ for i in range(len(headers)):
     page = headers[i]['page']
     y = headers[i]['y']
     
+    cursor.execute("SELECT text FROM juzgado WHERE page = %s AND y > %s", (page, y))
+    result = cursor.fetchall()
+    if len(result)>0:
+        juzgado = result[-1][0]
+    
     sql = ("INSERT INTO headers "
-               "(page, y) "
-               "VALUES (%s, %s)")
-    val = (page, y)
+               "(page, y, juzgado) "
+               "VALUES (%s, %s, %s)")
+    val = (page, y, juzgado)
     cursor.execute(sql, val)
     cnx.commit()
     headers_id = cursor.lastrowid
@@ -335,18 +339,6 @@ for i in range(len(headers)):
     cnx.commit()
     
 print("insert headers and contentofheaders table!")
-
-# json_object = json.dumps(headers)
-# # Writing to sample.json
-# if os.path.exists("headers.json"):
-#   os.remove("headers.json")
-# else:
-#   print("The file does not exist")
-  
-# with open("headers.json", "w") as outfile:
-#     outfile.write(json_object)
-
-print("Write the headers.json file successfully!")
 
 sql = "SELECT id FROM headers WHERE 1"
 cursor.execute(sql)

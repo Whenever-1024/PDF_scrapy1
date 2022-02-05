@@ -20,10 +20,8 @@ TABLES['headers'] = (
     "  `id` int(11) NOT NULL AUTO_INCREMENT,"
     "  `page` int(11) NOT NULL,"
     "  `y` int(11) NOT NULL,"
-    "  `juzgado_id` int(11),"
-    "  PRIMARY KEY (`id`),"
-    "  CONSTRAINT `headers_ibfk_1` FOREIGN KEY (`juzgado_id`) "
-    "     REFERENCES `juzgado` (`id`) ON DELETE CASCADE"
+    "  `juzgado` varchar(255),"
+    "  PRIMARY KEY (`id`)"
     ") ENGINE=InnoDB")
 
 TABLES['contentofheaders'] = (
