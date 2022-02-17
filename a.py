@@ -6,15 +6,16 @@ from pdfminer.layout import LTTextContainer, LTChar, LAParams
 import json
 import datetime
 
-FILE = "BL05012022.pdf"
-# FILE = "BL04102021.pdf"
+# FILE = "BL05012022.pdf"
+FILE = "BL04102021.pdf"
 _LA_PARAMS = LAParams(line_margin=0.0000001)
 
-Fecha, Juzgado = '', ''
+Fecha = '5 DE ENERO DE 2022'
+juzgado = ''
 headers, rest = [], []
-recordIndex = [] ## check the record number and y-coordinate of each record.
+recordNo = 0
 data_json = []
-
+start_time = datetime.datetime.now()
 def complex_list_sort(c):    
     yCoord, cc = [], []
     for cItem in c:
@@ -29,45 +30,6 @@ def complex_list_sort(c):
                 break
     return cc
 
-def get_result(recordIndex, c, key):
-    result = []
-    item = ''
-    if len(recordIndex) == len(c):
-        result.append('')
-        for cc in c:
-            result.append(cc['text'])
-    else:
-        ## In order to get information breaken by page breaks
-        y0 = recordIndex[0]['y']
-        for cc in c:        
-            if y0 < round(cc['y'], 3):
-                print(cc['text'])
-                print(data_json[-1][key])
-                data_json[-1][key] += cc['text']
-                print(data_json[-1][key])
-            else:
-                break    
-        ## Get by recordIndex
-        for r in recordIndex:
-            while r['y'] < round(c[0]['y'],3):
-                item += c[0]['text']
-                c.pop(0)
-            else:
-                if r['y'] == round(c[0]['y'],3):
-                    result.append(item)
-                    item = c[0]['text']
-                    c.pop(0)
-
-        if c:
-            last_item = item
-            while c:
-                last_item += c[0]['text']
-                c.pop(0)
-            result.append(last_item)            
-        else:
-            result.append(item)
-    return result
-
 # create natural sequence list
 def createList(r1, r2):
     if (r1 == r2):
@@ -79,62 +41,96 @@ def createList(r1, r2):
             r1 += 1
         return res
     
-def create_dic(recordIndex,b,c,d,e,f):
-    i = 0
-    for r in recordIndex:
-        i += 1
-        dic = {
-            "actor" : d[i].upper(),
-            "demandado" : e[i].upper(),
-            "entidad" : 'CIUDAD DE MEXICO',
-            "expediente" :c[i].upper(),
-            "fecha" : Fecha,
-            "fuero" : 'FEDERAL',
-            "juzgado" : Juzgado,
-            "tipo" : '',
-            "acuerdos" : f[i].upper() if f else '',
-            "monto": '',
-            "fecha_presentacion": '',
-            "actos_reclamados": '',
-            "actos_reclamados_especificos": '',
-            "Naturaleza_procedimiento": '',
-            "Prestación_demandada": '',
-            "Organo_jurisdiccional_origen": '',
-            "expediente_origen": b[i].upper() if b else '',
-            "materia": 'LABORAL',
-            "submateria": '',
-            "fecha_sentencia": '',
-            "sentido_sentencia": '',
-            "resoluciones": '',
-            "origen": 'TRIBUNAL FEDERAL DE CONCILIACION Y ARBITRAJE',
-            "Fecha insercion": datetime.datetime.now().strftime("%d/%m/%Y"),
-        }
-        data_json.append(dic)
+def create_dic(a,b,c,d,e,f):
+    dic = {
+        "actor" : a.upper(),
+        "demandado" : b.upper(),
+        "entidad" : 'CIUDAD DE MEXICO',
+        "expediente" :c.upper(),
+        "fecha" : Fecha,
+        "fuero" : 'FEDERAL',
+        "juzgado" : juzgado,
+        "tipo" : f,
+        "acuerdos" : d.upper(),
+        "monto": '',
+        "fecha_presentacion": '',
+        "actos_reclamados": '',
+        "actos_reclamados_especificos": '',
+        "Naturaleza_procedimiento": '',
+        "Prestación_demandada": '',
+        "Organo_jurisdiccional_origen": '',
+        "expediente_origen": e.upper(),
+        "materia": 'LABORAL',
+        "submateria": '',
+        "fecha_sentencia": '',
+        "sentido_sentencia": '',
+        "resoluciones": '',
+        "origen": 'TRIBUNAL FEDERAL DE CONCILIACION Y ARBITRAJE',
+        "Fecha insercion": datetime.datetime.now().strftime("%d/%m/%Y"),
+    }
+    data_json.append(dic)
 
-def record0000(e, i, l, content):
-    if len(e) == 4:
+def record0000(i, l, content):
+    l0 = [removeSpace(l0) if type(l0) == str else l0 for l0 in l]
+    l = l0
+    if len(content) == 1:
         sql = "INSERT INTO `%s` SET `'y'`=%s, `%s`=%s"
         cursor.execute(sql, (i+1000, l[2], content[0], l[3]))
-    elif len(e) == 5:
+    elif len(content) == 2:
         sql = "INSERT INTO `%s` SET `'y'`=%s, `%s`=%s, `%s`=%s"
         cursor.execute(sql, (i+1000, l[2], content[0], l[3], content[1], l[4]))
-    elif len(e) == 6:
+    elif len(content) == 3:
         sql = "INSERT INTO `%s` SET `'y'`=%s, `%s`=%s, `%s`=%s, `%s`=%s"
         cursor.execute(sql, (i+1000, l[2], content[0], l[3], content[1], l[4], content[2], l[5]))
-    elif len(e) == 7:
+        if content == ['EXP/LAB', 'ACTOR', 'DEMANDADO']:
+            create_dic(l[4],l[5],l[3],'','','')
+        else:
+            print('Exclude : ', content)
+    elif len(content) == 4:
         sql = "INSERT INTO `%s` SET `'y'`=%s, `%s`=%s, `%s`=%s, `%s`=%s, `%s`=%s"
         cursor.execute(sql, (i+1000, l[2], content[0], l[3], content[1], l[4], content[2], l[5], content[3], l[6]))
-    elif len(e) == 8:
+        if content == ['EXP/LAB', 'ACTOR', 'DEMANDADO', 'ACUERDO'] or content == ['EXP/LAB', 'ACTOR', 'DEMANDADO', 'AUDIENCIA']:
+            create_dic(l[4],l[5],l[3],l[6],'','')
+        elif content == ['HORA', 'EXP/LAB', 'ACTOR', 'DEMANDADO']:
+            create_dic(l[5],l[6],l[4],'','','')
+        else:
+            print('Exclude : ', content)
+    elif len(content) == 5:
         sql = "INSERT INTO `%s` SET `'y'`=%s, `%s`=%s, `%s`=%s, `%s`=%s, `%s`=%s, `%s`=%s"
         cursor.execute(sql, (i+1000, l[2], content[0], l[3], content[1], l[4], content[2], l[5], content[3], l[6], content[4], l[7]))
-    elif len(e) == 9:
+        if content == ['EXP/LAB', 'ACTOR', 'DEMANDADO', 'ACUERDO', 'E']:
+            create_dic(l[4],l[5],l[3],l[6],'','')
+        elif content == ['AMP/NO', 'EXP/LAB', 'QUEJOSO', 'TERCERO INTERESADO', 'ACUERDO']:
+            create_dic(l[5],l[6],l[3],l[7],l[4],'')
+        else:
+            print('Exclude : ', content)
+    elif len(content) == 6:
         sql = "INSERT INTO `%s` SET `'y'`=%s, `%s`=%s, `%s`=%s, `%s`=%s, `%s`=%s, `%s`=%s, `%s`=%s"
         cursor.execute(sql, (i+1000, l[2], content[0], l[3], content[1], l[4], content[2], l[5], content[3], l[6], content[4], l[7], content[5], l[8]))
-    elif len(e) == 10:
+        if content == ['AMP/NO', 'EXP/LAB', 'QUEJOSO', 'TERCERO INTERESADO', 'FECHA DE', 'ACUERDO']:
+            create_dic(l[5],l[6],l[3],l[8],l[4],'')
+        elif content == ['AMP/NO', 'EXP/LAB', 'QUEJOSO', 'TERCERO INTERESADO', 'ACUERDO', 'E']:
+            create_dic(l[5],l[6],l[3],l[7],l[4],'AMPAROS')
+        elif content == ['EXP/LAB', 'ACTOR', 'DEMANDADO', 'FECHA DE', 'ACUERDO', 'E']:
+            create_dic(l[4],l[5],l[3],l[7],'','')
+        else:
+            print('Exclude : ', content)
+    elif len(content) == 7:
         sql = "INSERT INTO `%s` SET `'y'`=%s, `%s`=%s, `%s`=%s, `%s`=%s, `%s`=%s, `%s`=%s, `%s`=%s, `%s`=%s"
         cursor.execute(sql, (i+1000, l[2], content[0], l[3], content[1], l[4], content[2], l[5], content[3], l[6], content[4], l[7], content[5], l[8], content[6], l[9]))
+        if content == ['AMP/NO', 'EXP/LAB', 'QUEJOSO', 'TERCERO INTERESADO', 'FECHA DE', 'ACUERDO', 'E']:
+            create_dic(l[5],l[6],l[3],l[8],l[4],'')
+        else:
+            print('Exclude : ', content)
     cnx.commit()
-    
+
+def removeSpace(st):
+    if st.find("  ")<0:
+        return st
+    else:
+        st = st.replace("  ", " ")
+        return removeSpace(st)
+       
 cnx = mysql.connector.connect(user='root', database='mydatabase')
 cursor = cnx.cursor()
 # '''
@@ -205,8 +201,8 @@ for page_layout in extract_pages(FILE, laparams=_LA_PARAMS):
                 for character in text_line:
                     if isinstance(character, LTChar):
                         if round(character.size) == 16:
-                            Juzgado = elText
-                            sql = ("INSERT INTO Juzgado "
+                            juzgado = elText
+                            sql = ("INSERT INTO juzgado "
                                     "(page, y, text) "
                                     "VALUES (%s, %s, %s)")
                             val = (pageNo, y, elText)
@@ -214,7 +210,7 @@ for page_layout in extract_pages(FILE, laparams=_LA_PARAMS):
                             cnx.commit()
                             break
                         elif round(character.size) == 10 and character.fontname == 'ABCDEE+Eras Medium ITC':
-                            Fecha = elText
+                            Fecha = elText[re.search("\s", elText).start()+1:]
                             break
                         elif round(character.size) == 9 and re.findall('^\d \n$', elText): # '1 \n' '2 \n' ....
                             e_x = element.bbox[0]
@@ -272,13 +268,24 @@ for h in headers:
         temp = h['header'][-2]['x']
         h['header'][-2]['x'] = h['header'][-3]['x']
         h['header'][-3]['x'] = temp
+    
+    if len(h['header']) > 3:
         #####################################
-        # delete the header record 'ACUERDO' in the image '1.jpg'
+        # delete the header record 'ACUERDO' in the image 1.jpg
         #####################################
-        sql = "DELETE FROM elements WHERE page=(%s) AND x=(%s) AND text=(%s);"
-        val = (page, h['header'][-3]['x'], 'ACUERDO \n')
-        cursor.execute(sql, val)
-        cnx.commit()
+        if h['header'][-3]['text'] == 'FECHA DE':
+            sql = "DELETE FROM elements WHERE page=(%s) AND x=(%s) AND text=(%s);"
+            val = (page, h['header'][-3]['x'], 'ACUERDO \n')
+            cursor.execute(sql, val)
+            cnx.commit()
+            #####################################
+            # delete the header record 'ACUERDO' in the image  6.jpg, 7.jpg
+            #####################################
+            if h['y'] < 60:
+                sql = "DELETE FROM elements WHERE page=(%s) AND x=(%s) AND text=(%s);"
+                val = (page+1, h['header'][-3]['x'], 'ACUERDO \n')
+                cursor.execute(sql, val)
+                cnx.commit()    
     for r in rest:   
         if r['page'] == page:
             if r['y'] == y:
@@ -287,8 +294,16 @@ for h in headers:
                 break
 
 print("rest field & reversed field!")
-# a = ''
-# headers = json.loads(a)
+
+json_object = json.dumps(headers)
+
+# Writing to sample.json
+with open("sample1.json", "w") as outfile:
+    outfile.write(json_object)
+
+# with open("sample1.json", "r") as outfile:
+#     headers = outfile.read()
+# headers = json.loads(headers)
 
 ############################################
 ## insert headers and contentofheaders table.
@@ -301,7 +316,12 @@ for i in range(len(headers)):
     result = cursor.fetchall()
     if len(result)>0:
         juzgado = result[-1][0]
-    
+    else:
+        # find "S E X T A S A L A" in page 14 in BL05012022.pdf
+        cursor.execute("SELECT text FROM juzgado WHERE page = %s AND y < 70", (page-1,))
+        result1 = cursor.fetchall()
+        if len(result1)>0:
+            juzgado = result1[-1][0]
     sql = ("INSERT INTO headers "
                "(page, y, juzgado) "
                "VALUES (%s, %s, %s)")
@@ -383,9 +403,9 @@ for i in range(len(ds)):
 
 
 ####################################### 
-## Split the ones merged with 2 more elements
+## Splitting a joined element into two or more
 #######################################
-print("START to split the ones merged with 2 more elements!!!")
+print("Splitting a joined element into two or more!!!")
 pageNo = 0
 for page_layout in extract_pages(FILE, laparams=_LA_PARAMS):
     pageNo += 1
@@ -394,10 +414,6 @@ for page_layout in extract_pages(FILE, laparams=_LA_PARAMS):
     for element in page_layout:
         if isinstance(element, LTTextContainer):
             elText = element.get_text()
-            # if elText == '07/12/2021  DEMANDADO PRESENTA \n':
-            #     print(elText)
-            # else:
-            #     continue
             x = round(element.bbox[0])
             y = round(element.bbox[1])
             x1 = round(element.bbox[2])
@@ -417,13 +433,19 @@ for page_layout in extract_pages(FILE, laparams=_LA_PARAMS):
             # fill empty 'record_x' field in contentofheaders
             # Temporarily fill '77' on each 'EXP/LAB' records in ['HORA', 'EXP/LAB', 'ACTOR', 'DEMANDADO'] header
             # Temporarily fill '104' on each 'EXP/LAB' records in ['AMP/NO', 'EXP/LAB', 'QUEJOSO', 'TERCERO INTERESADO', 'ACUERDO'] header
-            ###################################################### And fill empty juzgado_id field in headers ##########################
-            ################################
+            ######################### And fill empty juzgado_id field in headers #########################
             if content == ['HORA', 'EXP/LAB', 'ACTOR', 'DEMANDADO'] and record_x[1] == None:
                 sql = "UPDATE contentofheaders SET record_x=%s WHERE id=%s AND content=%s"
                 cursor.execute(sql, (77, result1[0][0], content[1]))
                 cnx.commit()
                 record_x[1] = 77
+                print("Filling 77 in 'record_x' field " + str(result1[0][0]) + "th 'id' of 'contentofheaders' table.")
+            # 5.jpg
+            elif content == ['HORA', 'EXP/LAB', 'ACTOR', 'DEMANDADO'] and record_x[2] == None:
+                sql = "UPDATE contentofheaders SET record_x=%s WHERE id=%s AND content=%s"
+                cursor.execute(sql, (126, result1[0][0], content[2]))
+                cnx.commit()
+                record_x[2] = 126
                 print("Filling 77 in 'record_x' field " + str(result1[0][0]) + "th 'id' of 'contentofheaders' table.")
             elif content == ['AMP/NO', 'EXP/LAB', 'QUEJOSO', 'TERCERO INTERESADO', 'ACUERDO'] and record_x[1] == None:
                 sql = "UPDATE contentofheaders SET record_x=%s WHERE id=%s AND content=%s"
@@ -475,10 +497,11 @@ for page_layout in extract_pages(FILE, laparams=_LA_PARAMS):
                                 cursor.execute(sql, (result1[0][0], pageNo, record_x[index+2], y, temp1))
                                 cnx.commit()
                             break
-# '''
+#'''
 ################################
 # First Step of Arrangement
 ################################
+
 sql = "SELECT * FROM headers WHERE 1 ORDER BY id"
 cursor.execute(sql)
 headers = cursor.fetchall()
@@ -530,7 +553,7 @@ for id, page, header_y, juzgado in headers:
             print("OK")
             
     ######################
-    # write the record in each table
+    # write the record in each table 1, 2, 3 ...
     ######################
     
     sql = "SELECT * FROM elements WHERE id=%s ORDER BY page, y DESC, x"
@@ -590,29 +613,46 @@ for id, page, header_y, juzgado in headers:
     cursor.execute(sql, (i,))
     elements = cursor.fetchall()
     cnx.commit()
-    
     for e in elements:
         e = list(e)
-        
+            
         if None in e:
-            if e[0] == elements[0][0]:
-                continue
-            e[2] = ''
-            for t in range(len(e)-2):
-                if e[t+2] == None:
-                    e[t+2] = ''
-                l[t+2] += e[t+2]
-            if e[0] == elements[-1][0]: # if the latest colume,
-                record0000(e, i, l, content)
+            # if 4.jpg
+            if e[-1] == None and content[-1] == 'DEMANDADO' and content[0] == 'HORA' and e[3] != None:
+                e[-1] = ''
+                record0000(i, e, content)
+                recordNo += 1
+            else:    
+                if e[0] == elements[0][0]:
+                    continue
+                e[2] = ''
+                for t in range(len(e)-2):
+                    if e[t+2] == None:
+                        e[t+2] = ''
+                    l[t+2] += e[t+2]
+                if e[0] == elements[-1][0]: # if the latest colume,
+                    record0000(i, l, content)
+                    recordNo += 1
         elif None not in e:
             if '' not in l:
-                record0000(e, i, l, content)
+                record0000(i, l, content)
+                recordNo += 1
                 l = e
             if e[0] == elements[0][0]: # if the fist colume, 
                 l = e
             elif e[0] == elements[-1][0]:
-                record0000(e, i, l, content)
-            
-    print(id)
-    
+                record0000(i, l, content)
+                recordNo += 1
+                
+    print("Table No: {}, Record number: {}".format(i, recordNo))
+json_object = json.dumps(data_json)
+# Writing to sample.json
+with open("sample.json", "w") as outfile:
+    outfile.write(json_object)
+
+end_time = datetime.datetime.now()
+print(start_time)
+print(end_time)
+print("Total Table Number is {}".format(i))
+# '''
 
