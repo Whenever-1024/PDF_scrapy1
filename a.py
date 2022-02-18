@@ -133,7 +133,7 @@ def removeSpace(st):
        
 cnx = mysql.connector.connect(user='root', database='mydatabase')
 cursor = cnx.cursor()
-# '''
+'''
 ############################################
 ## delete all the records on all the tables.
 ############################################``
@@ -622,6 +622,15 @@ for id, page, header_y, juzgado in headers:
                 e[-1] = ''
                 record0000(i, e, content)
                 recordNo += 1
+            # if 8.jpg
+            if e[-1] != None and content[-1] == 'E':
+                if re.findall('^\d \n$', e[-1]): # '1 \n' '2 \n'...
+                    record0000(i, l, content)
+                    recordNo += 1
+                    l = e
+                for t in range(len(l)):
+                    if l[t] == None:
+                        l[t] = ''
             else:    
                 if e[0] == elements[0][0]:
                     continue
