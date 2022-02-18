@@ -10,13 +10,12 @@ import datetime
 FILE = "BL04102021.pdf"
 _LA_PARAMS = LAParams(line_margin=0.0000001)
 
-Fecha = '5 DE ENERO DE 2022'
-juzgado = ''
-headers, rest = [], []
+Fecha, juzgado = '', ''
+headers, rest, data_json = [], [], []
 recordNo = 0
-data_json = []
 start_time = datetime.datetime.now()
-def complex_list_sort(c):    
+
+def complex_list_sort1(c):    
     yCoord, cc = [], []
     for cItem in c:
         yCoord.append(cItem['y'])
@@ -26,6 +25,20 @@ def complex_list_sort(c):
     for y in yCoord:
         for cItem in c:
             if y == cItem['y']:
+                cc.append(cItem)
+                break
+    return cc
+
+def complex_list_sort2(c):    
+    xCoord, cc = [], []
+    for cItem in c:
+        xCoord.append(cItem['x'])
+    
+    xCoord.sort()
+    
+    for x in xCoord:
+        for cItem in c:
+            if x == cItem['x']:
                 cc.append(cItem)
                 break
     return cc
@@ -120,6 +133,8 @@ def record0000(i, l, content):
         cursor.execute(sql, (i+1000, l[2], content[0], l[3], content[1], l[4], content[2], l[5], content[3], l[6], content[4], l[7], content[5], l[8], content[6], l[9]))
         if content == ['AMP/NO', 'EXP/LAB', 'QUEJOSO', 'TERCERO INTERESADO', 'FECHA DE', 'ACUERDO', 'E']:
             create_dic(l[5],l[6],l[3],l[8],l[4],'')
+        elif content == ['EXP/LAB', 'ACTOR', 'DEMANDADO', 'FECHA DE', 'ACUERDO', 'E', 'PRÓXIMA']:
+            create_dic(l[4],l[5],l[3],l[7],'','')
         else:
             print('Exclude : ', content)
     cnx.commit()
@@ -153,11 +168,11 @@ cnx.commit()
 #######################################
 ## Create headers and all the elements.
 #######################################
-hearderNo, pageNo = 0, 0
+hearderNo, page = 0, 0
 # a_x, b_x, c_x, b_x, e_x = 41, 98, 254, 410, 566 # default x of table with 5 fields
 for page_layout in extract_pages(FILE, laparams=_LA_PARAMS):
-    pageNo += 1
-    if pageNo < 3:
+    page += 1
+    if page < 3:
         continue
     samepage_headers = []
     for element in page_layout:
@@ -178,7 +193,7 @@ for page_layout in extract_pages(FILE, laparams=_LA_PARAMS):
                         break
                 # if first field
                 if first_field == True:
-                    headers.append({'No': hearderNo, 'page': pageNo, 'y': y, 'header': [{'x': x, 'text': elText[:-2]}]})
+                    headers.append({'No': hearderNo, 'page': page, 'y': y, 'header': [{'x': x, 'text': elText[:-2]}]})
                     samepage_headers.append({'No': hearderNo, 'y': y, 'header': [elText[:-2]]})
                     hearderNo += 1
                 continue
@@ -190,12 +205,13 @@ for page_layout in extract_pages(FILE, laparams=_LA_PARAMS):
                     break
             # if 'Actor' or 'demandado' values appear first              
             if insert_otherfield == False and (elText == 'ACTOR \n'):
-                headers.append({'No': hearderNo, 'page': pageNo, 'y': y, 'header': [{'x': x, 'text': elText[:-2]}]})
+                headers.append({'No': hearderNo, 'page': page, 'y': y, 'header': [{'x': x, 'text': elText[:-2]}]})
                 samepage_headers.append({'No': hearderNo, 'y': y, 'header': [elText[:-2]]})
                 hearderNo += 1
                 continue
-            elif insert_otherfield == False and elText == 'DEMANDADO \n':
-                rest.append({'page': pageNo, 'y': y, 'header': [{'x': x, 'text': elText[:-2]}]})
+            # Other fields are added to the [rest] list and reprocessed later.
+            elif insert_otherfield == False and (elText == 'DEMANDADO \n' or elText == 'AUDIENCIA \n'):
+                rest.append({'page': page, 'y': y, 'header': [{'x': x, 'text': elText[:-2]}]})
 
             for text_line in element:
                 for character in text_line:
@@ -205,7 +221,7 @@ for page_layout in extract_pages(FILE, laparams=_LA_PARAMS):
                             sql = ("INSERT INTO juzgado "
                                     "(page, y, text) "
                                     "VALUES (%s, %s, %s)")
-                            val = (pageNo, y, elText)
+                            val = (page, y, elText)
                             cursor.execute(sql, val)
                             cnx.commit()
                             break
@@ -215,7 +231,7 @@ for page_layout in extract_pages(FILE, laparams=_LA_PARAMS):
                         elif round(character.size) == 9 and re.findall('^\d \n$', elText): # '1 \n' '2 \n' ....
                             e_x = element.bbox[0]
                             sql = "INSERT INTO elements (page, x, y, text) VALUES (%s, %s, %s, %s)"
-                            cursor.execute(sql, (pageNo, x, y, elText))
+                            cursor.execute(sql, (page, x, y, elText))
                             cnx.commit()
                             break
                         elif round(character.size) == 9 and elText != ' \n' and elText != '  \n':
@@ -226,18 +242,18 @@ for page_layout in extract_pages(FILE, laparams=_LA_PARAMS):
                             # '...  1 \n'
                             elif re.findall('  \d \n$', elText): 
                                 sql = "INSERT INTO elements (page, x, y, text) VALUES (%s, %s, %s, %s)"
-                                cursor.execute(sql, (pageNo, x, y, elText))
+                                cursor.execute(sql, (page, x, y, elText))
                                 cnx.commit()
                             # 6789/20, 10.30, 09:00 ...
                             elif x < 70 and (re.findall('^\d+\/.+', elText) or re.findall('^\d+\..+', elText) or re.findall('^\d+\:.+', elText)):
                                 sql = "INSERT INTO elements (page, x, y, text) VALUES (%s, %s, %s, %s)"
-                                cursor.execute(sql, (pageNo, x, y, elText))
+                                cursor.execute(sql, (page, x, y, elText))
                                 cnx.commit()
                             else:
                                 sql = ("INSERT INTO elements "
                                         "(page, x, y, text) "
                                         "VALUES (%s, %s, %s, %s)")
-                                val = (pageNo, x, y, elText)
+                                val = (page, x, y, elText)
                                 cursor.execute(sql, val)
                                 cnx.commit()
                             break
@@ -246,30 +262,66 @@ print("create primary table!")
 
 # sort the headers list by page and y
 a, b, c = [], [], []
-for i in createList(1, pageNo):
+for i in createList(1, page):
     a = []
     for h in headers:
         if h['page'] == i:
             a.append(h)
     
-    b = complex_list_sort(a)
+    b = complex_list_sort1(a)
     c += b
 headers = c    
 ##################################
-## rest field & reversed field.
+## process the rest field & reversed field.
 ##################################
 for h in headers: 
     page = h['page']
-    y = h['y']
-    # fix reversed field
-    if h['header'][-2]['text'] == 'FECHA DE' and h['header'][-3]['text'] == 'ACUERDO':
-        h['header'][-2]['text'] = 'ACUERDO'
-        h['header'][-3]['text'] = 'FECHA DE'
-        temp = h['header'][-2]['x']
-        h['header'][-2]['x'] = h['header'][-3]['x']
-        h['header'][-3]['x'] = temp
+    y = h['y']    
+    # process the rest field
+    for r in rest:   
+        if r['page'] == page:
+            if r['y'] == y:
+                # append rest field
+                h['header'].append(r['header'][0])
+                
+    # process the reversed field.
+    h['header'] = complex_list_sort2(h['header'])
     
-    if len(h['header']) > 3:
+    if len(h['header'])>4:
+        #####################################
+        # delete the header record 'ACUERDO' in the image 12.jpg
+        #####################################
+        if h['header'][-4]['text'] == 'FECHA DE':
+            sql = "DELETE FROM elements WHERE page=(%s) AND x=(%s) AND text=(%s);"
+            val = (page, h['header'][-4]['x'], 'ACUERDO \n')
+            cursor.execute(sql, val)
+            cnx.commit()
+            #####################################
+            # delete the header record 'ACUERDO' if it is bottom of the page
+            #####################################
+            if h['y'] < 60:
+                sql = "DELETE FROM elements WHERE page=(%s) AND x=(%s) AND text=(%s);"
+                val = (page+1, h['header'][-4]['x'], 'ACUERDO \n')
+                cursor.execute(sql, val)
+                cnx.commit()
+        #####################################
+        # delete the header record 'PRÓXIMA' in the image 12.jpg
+        #####################################
+        if h['header'][-1]['text'] == 'PRÓXIMA':
+            sql = "DELETE FROM elements WHERE page=(%s) AND x=(%s) AND text=(%s);"
+            val = (page, h['header'][-1]['x'], 'PRÓXIMA \n')
+            cursor.execute(sql, val)
+            cnx.commit()
+            #####################################
+            # delete the header record 'PRÓXIMA' if it is bottom of the page
+            #####################################
+            if h['y'] < 60:
+                sql = "DELETE FROM elements WHERE page=(%s) AND x=(%s) AND text=(%s);"
+                val = (page+1, h['header'][-1]['x'], 'PRÓXIMA \n')
+                cursor.execute(sql, val)
+                cnx.commit()
+    
+    if len(h['header'])>3:        
         #####################################
         # delete the header record 'ACUERDO' in the image 1.jpg
         #####################################
@@ -285,16 +337,10 @@ for h in headers:
                 sql = "DELETE FROM elements WHERE page=(%s) AND x=(%s) AND text=(%s);"
                 val = (page+1, h['header'][-3]['x'], 'ACUERDO \n')
                 cursor.execute(sql, val)
-                cnx.commit()    
-    for r in rest:   
-        if r['page'] == page:
-            if r['y'] == y:
-                # append rest field
-                h['header'].append(r['header'][0])
-                break
-
-print("rest field & reversed field!")
-
+                cnx.commit()
+    
+print("processed the rest field & reversed field!")
+                
 json_object = json.dumps(headers)
 
 # Writing to sample.json
@@ -312,16 +358,16 @@ for i in range(len(headers)):
     page = headers[i]['page']
     y = headers[i]['y']
     
-    cursor.execute("SELECT text FROM juzgado WHERE page = %s AND y > %s", (page, y))
+    cursor.execute("SELECT text FROM juzgado WHERE page < %s or (page = %s AND y > %s) ORDER BY page DESC, y", (page, page, y))
     result = cursor.fetchall()
     if len(result)>0:
-        juzgado = result[-1][0]
-    else:
-        # find "S E X T A S A L A" in page 14 in BL05012022.pdf
-        cursor.execute("SELECT text FROM juzgado WHERE page = %s AND y < 70", (page-1,))
-        result1 = cursor.fetchall()
-        if len(result1)>0:
-            juzgado = result1[-1][0]
+        juzgado = result[0][0]
+    # else:
+    #     # find "S E X T A S A L A" in page 14 in BL05012022.pdf
+    #     cursor.execute("SELECT text FROM juzgado WHERE page = %s AND y < 70", (page-1,))
+    #     result1 = cursor.fetchall()
+    #     if len(result1)>0:
+    #         juzgado = result1[-1][0]
     sql = ("INSERT INTO headers "
                "(page, y, juzgado) "
                "VALUES (%s, %s, %s)")
@@ -406,10 +452,10 @@ for i in range(len(ds)):
 ## Splitting a joined element into two or more
 #######################################
 print("Splitting a joined element into two or more!!!")
-pageNo = 0
+page = 0
 for page_layout in extract_pages(FILE, laparams=_LA_PARAMS):
-    pageNo += 1
-    if pageNo < 3:
+    page += 1
+    if page < 3:
         continue
     for element in page_layout:
         if isinstance(element, LTTextContainer):
@@ -418,7 +464,7 @@ for page_layout in extract_pages(FILE, laparams=_LA_PARAMS):
             y = round(element.bbox[1])
             x1 = round(element.bbox[2])
             sql = "SELECT id FROM elements WHERE page=%s AND x=%s AND y=%s AND text=%s"
-            cursor.execute(sql, (pageNo, x, y, elText))
+            cursor.execute(sql, (page, x, y, elText))
             result1 = cursor.fetchall()
             if len(result1) == 0:
                 continue
@@ -485,16 +531,16 @@ for page_layout in extract_pages(FILE, laparams=_LA_PARAMS):
                                         temp += cha._text
                             # trim the origion text and update it
                             sql = "UPDATE elements SET text=%s WHERE id=%s AND page=%s AND x=%s AND y=%s"
-                            cursor.execute(sql, (elText.split(temp)[0], result1[0][0], pageNo, x, y))
+                            cursor.execute(sql, (elText.split(temp)[0], result1[0][0], page, x, y))
                             cnx.commit()
                             # trim the origion text and insert the rest
                             sql = "INSERT INTO elements (id, page, x, y, text) VALUES (%s, %s, %s, %s, %s)"
-                            cursor.execute(sql, (result1[0][0], pageNo, record_x[index+1], y, temp))
+                            cursor.execute(sql, (result1[0][0], page, record_x[index+1], y, temp))
                             cnx.commit()
                             if how == 3:
                                 # trim the origion text and insert the rest
                                 sql = "INSERT INTO elements (id, page, x, y, text) VALUES (%s, %s, %s, %s, %s)"
-                                cursor.execute(sql, (result1[0][0], pageNo, record_x[index+2], y, temp1))
+                                cursor.execute(sql, (result1[0][0], page, record_x[index+2], y, temp1))
                                 cnx.commit()
                             break
 #'''
@@ -615,16 +661,36 @@ for id, page, header_y, juzgado in headers:
     cnx.commit()
     for e in elements:
         e = list(e)
-            
+        # 9.jpg
+        if len(elements) == 1:
+            record0000(i,e,content)
+            break
         if None in e:
             # if 4.jpg
-            if e[-1] == None and content[-1] == 'DEMANDADO' and content[0] == 'HORA' and e[3] != None:
+            if content[-1] == 'DEMANDADO' and e[-1] == None and content[0] == 'HORA' and e[3] != None:
                 e[-1] = ''
                 record0000(i, e, content)
+                recordNo += 1            
+            # 13.jpg
+            if content[-1] == 'AUDIENCIA' and e[-1] == None and content[0] == 'EXP/LAB' and e[3] != None:
+                record0000(i, l, content)
                 recordNo += 1
-            # if 8.jpg
-            if e[-1] != None and content[-1] == 'E':
+                l = e
+                for t in range(len(l)):
+                    if l[t] == None:
+                        l[t] = ''
+            # if 8.jpg    
+            elif content[-1] == 'E' and e[-1] != None:
                 if re.findall('^\d \n$', e[-1]): # '1 \n' '2 \n'...
+                    record0000(i, l, content)
+                    recordNo += 1
+                    l = e
+                for t in range(len(l)):
+                    if l[t] == None:
+                        l[t] = ''
+            # if 10.jpg
+            elif content[-2] == 'E' and e[-2] != None:
+                if re.findall('^\d \n$', e[-2]): # '1 \n' '2 \n'...
                     record0000(i, l, content)
                     recordNo += 1
                     l = e
